@@ -357,9 +357,9 @@ tempo=None # should be set by your MIDI...
 
 def main(argv):
 
-    x=0.0
-    y=0.0
-    z=0.0
+    x=args.safemin[0]
+    y=args.safemin[1]
+    z=args.safemin[2]
 
     x_dir=1.0;
     y_dir=1.0;
@@ -448,15 +448,17 @@ def main(argv):
         
     # Code for everyone
     if args.units == 'imperial':
-        args.outfile.write ("G20 (Imperial Hegemony Forevah!)\n")
+        args.outfile.write ("G20\n")
     elif args.units == 'metric':
-        args.outfile.write ("G21 (Metric FTW)\n")
+        args.outfile.write ("G21\n")
     else:
         print "\nWARNING: Gcode metric/imperial setting undefined!\n"
 
-    args.outfile.write ("G90 (Absolute posiitioning)\n")
-    args.outfile.write ("G92 X0 Y0 Z0 (set origin to current position)\n")
-    args.outfile.write ("G0 X0 Y0 Z0 F2000.0 (Pointless move to origin to reset feed rate to a sane value)\n")
+    args.outfile.write ("G90\n")
+    args.outfile.write ("G28\n")
+    args.outfile.write ("G0 X%s Y%s Z%s F2000.0\n" % (x, y, z))
+    args.outfile.write ("G4 P1000")
+
 
     # Handle the prefix Gcode, if present
     if args.prefix != None:
@@ -532,16 +534,27 @@ def main(argv):
                 #
                 if reached_limit( x, distance_xyz[0], x_dir, args.safemin[0], args.safemax[0] ):
                     x_dir = x_dir * -1
-                x = (x + (distance_xyz[0] * x_dir))
                
                 if reached_limit( y, distance_xyz[1], y_dir, args.safemin[1], args.safemax[1] ):
                     y_dir = y_dir * -1
-                y = (y + (distance_xyz[1] * y_dir))
                
                 if reached_limit( z, distance_xyz[2], z_dir, args.safemin[2], args.safemax[2] ):
                     z_dir = z_dir * -1
-                z = (z + (distance_xyz[2] * z_dir))
                
+
+                old_distance_x = distance_xyz[0]
+                old_distance_y = distance_xyz[1]
+                old_distance_z = distance_xyz[2]
+
+                distance_x = abs(old_distance_x - old_distance_y)
+                distance_y = abs(old_distance_x + old_distance_y)
+                distance_z = old_distance_z
+                
+                x = (x + (distance_x * x_dir))
+                y = (y + (distance_y * y_dir))
+                z = (z + (distance_z * z_dir))
+               
+
                 if args.verbose:
                     print "G01 X%.10f Y%.10f Z%.10f F%.10f\n" % (x, y, z, combined_feedrate)
                 args.outfile.write("G01 X%.10f Y%.10f Z%.10f F%.10f\n" % (x, y, z, combined_feedrate))
